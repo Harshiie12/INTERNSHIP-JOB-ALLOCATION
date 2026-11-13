@@ -1,0 +1,120 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<header>
+    <nav>
+        <h2>Admin Panel</h2>
+
+        <div>
+            <a href="dashboard.html">Student Dashboard</a>
+            <a href="index.html">Home</a>
+        </div>
+    </nav>
+</header>
+
+<main>
+
+    <section class="admin-dashboard-container">
+
+        <h1>Admin Dashboard</h1>
+        <p>Manage students, opportunities, applications and allocations.</p>
+
+        <div class="dashboard-container">
+
+            <div class="dashboard-card">
+                <h2>Manage Students</h2>
+                <p>View registered students.</p>
+                <button onclick="viewStudents()">View Students</button>
+            </div>
+
+            <div class="dashboard-card">
+                <h2>Manage Opportunities</h2>
+                <p>Add jobs and internships.</p>
+
+                <button onclick="showOpportunityForm()">Add Opportunity</button>
+                <button onclick="viewOpportunities()">Manage Opportunities</button>
+            </div>
+
+            <div class="dashboard-card">
+                <h2>Applications</h2>
+                <p>View student applications.</p>
+                <button onclick="viewApplications()">View Applications</button>
+            </div>
+
+            <div class="dashboard-card">
+                <h2>Allocations</h2>
+                <p>View student allocations.</p>
+                <button onclick="viewAllocations()">View Allocations</button>
+            </div>
+
+        </div>
+
+        <!-- Students Popup -->
+        <div id="adminModal" class="admin-modal">
+
+            <div class="admin-modal-content">
+
+                <div class="admin-modal-header">
+                    <h2 id="adminModalTitle">Registered Students</h2>
+
+                    <button class="close-btn" onclick="closeAdminModal()">
+                        &times;
+                    </button>
+                </div>
+
+                <div id="adminContent" class="admin-modal-body">
+
+                    <form id="opportunityForm" style="display: none;">
+
+                        <label>Company Name</label>
+                        <input type="text" id="company_name" required>
+
+                        <label>Opportunity Title</label>
+                        <input type="text" id="opportunity_title" required>
+
+                        <label>Opportunity Type</label>
+                        <select id="opportunity_type" required>
+                            <option value="Internship">Internship</option>
+                            <option value="Job">Job</option>
+                        </select>
+
+                        <label>Required Skills</label>
+                        <input type="text" id="required_skills" placeholder="Python, SQL" required>
+
+                        <label>Minimum CGPA</label>
+                        <input type="number" id="minimum_cgpa" min="0" max="10" step="0.01" required>
+
+                        <label>Location</label>
+                        <input type="text" id="location" required>
+
+                        <button type="submit">Save Opportunity</button>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</main>
+
+<footer>
+    <p>&copy; 2026 Internship & Job Allocation System</p>
+</footer>
+
+<script src="js/admin.js"></script>
+
+</body>
+</html>

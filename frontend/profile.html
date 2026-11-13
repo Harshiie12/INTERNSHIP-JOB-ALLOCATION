@@ -1,0 +1,68 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Profile</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<header>
+    <nav>
+        <h2>Student Profile</h2>
+
+        <div>
+            <a href="dashboard.html">Dashboard</a>
+            <a href="jobs.html">Jobs</a>
+            <a href="internships.html">Internships</a>
+        </div>
+    </nav>
+</header>
+
+<main>
+    <section class="profile-container">
+
+        <h1>My Profile</h1>
+
+        <form id="profileForm">
+
+            <label for="name">Full Name</label>
+            <input type="text" id="name" required>
+
+            <label for="email">Email</label>
+            <input type="email" id="email" required>
+
+            <label for="qualification">Qualification</label>
+            <input type="text" id="qualification" required>
+
+            <label for="cgpa">CGPA</label>
+            <input type="number" id="cgpa"
+                   step="0.01" min="0" max="10" required>
+
+            <label for="skills">Skills</label>
+            <textarea id="skills" rows="5" required></textarea>
+
+            <label for="preferred_type">Preferred Opportunity</label>
+            <select id="preferred_type" required>
+                <option value="Internship">Internship</option>
+                <option value="Job">Job</option>
+            </select>
+
+            <button type="submit">Update Profile</button>
+
+        </form>
+
+    </section>
+</main>
+
+<footer>
+    <p>&copy; 2026 Internship & Job Allocation System</p>
+</footer>
+
+<script src="js/profile.js"></script>
+
+</body>
+</html>
