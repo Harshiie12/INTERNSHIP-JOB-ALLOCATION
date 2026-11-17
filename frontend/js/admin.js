@@ -335,6 +335,7 @@ async function viewOpportunities() {
                         <th>Required Skills</th>
                         <th>Minimum CGPA</th>
                         <th>Location</th>
+                        <th>Status</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -351,12 +352,21 @@ async function viewOpportunities() {
                     <td>${opportunity[3]}</td>
                     <td>${opportunity[4]}</td>
                     <td>${opportunity[5]}</td>
-                    <td>${opportunity[6]}</td>
-                    <td>
-                        <button onclick="deleteOpportunity(${opportunity[0]})">
-                            Delete
-                        </button>
-                    </td>
+                   <td>${opportunity[6]}</td>
+<td>${opportunity[7]}</td>
+<td>
+    ${
+        opportunity[7] === "Active"
+        ? `<button onclick="closeOpportunity(${opportunity[0]})">
+               Close Opportunity
+           </button>`
+        : "Closed"
+    }
+
+    <button onclick="deleteOpportunity(${opportunity[0]})">
+        Delete
+    </button>
+</td>
                 </tr>
             `;
 
@@ -445,5 +455,48 @@ async function updateApplicationStatus(applicationId) {
     } catch (error) {
         console.error(error);
         alert("Unable to connect to the server.");
+    }
+}
+
+
+// Close an opportunity
+async function closeOpportunity(opportunityId) {
+
+    const confirmClose = confirm(
+        "Are you sure you want to close this opportunity?"
+    );
+
+    if (!confirmClose) {
+        return;
+    }
+
+    try {
+
+        const response = await fetch(
+            `http://127.0.0.1:5000/api/opportunities/${opportunityId}/close`,
+            {
+                method: "PUT"
+            }
+        );
+
+        const result = await response.json();
+
+        if (response.ok) {
+
+            alert("Opportunity closed successfully!");
+
+            viewOpportunities();
+
+        } else {
+
+            alert(result.message || "Unable to close opportunity.");
+
+        }
+
+    } catch (error) {
+
+        console.error(error);
+        alert("Unable to connect to server.");
+
     }
 }

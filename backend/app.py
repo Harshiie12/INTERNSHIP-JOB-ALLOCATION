@@ -1,15 +1,18 @@
-
-from flask import Flask, request, jsonify, session
+from flask import Flask, request, jsonify, session, send_from_directory
 from database import get_db_connection
 from werkzeug.security import generate_password_hash, check_password_hash
+import os
 
 app = Flask(__name__)
-import os
 
 app.secret_key = os.environ.get(
     "FLASK_SECRET_KEY",
     "change-this-secret-before-deployment"
 )
+
+
+# ================= CORS =================
+
 @app.after_request
 def add_cors_headers(response):
     response.headers["Access-Control-Allow-Origin"] = "*"
@@ -18,16 +21,7 @@ def add_cors_headers(response):
     return response
 
 
-
-
-
-
-
-
 # ================= HOME =================
-
-import os
-from flask import send_from_directory
 
 @app.route("/")
 def home():
@@ -35,6 +29,7 @@ def home():
         os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend"),
         "index.html"
     )
+
 
 @app.route("/<path:filename>")
 def frontend_files(filename):
@@ -44,6 +39,8 @@ def frontend_files(filename):
     )
 
     return send_from_directory(frontend_folder, filename)
+
+
 # ================= STUDENTS =================
 
 @app.route("/students")
@@ -65,9 +62,12 @@ def get_students():
     db = get_db_connection()
     cursor = db.cursor()
 
-    cursor.execute("""SELECT student_id, name, email, qualification,
-       cgpa, skills, preferred_type
-FROM Student""")
+    cursor.execute("""
+        SELECT student_id, name, email, qualification,
+               cgpa, skills
+        FROM Student
+    """)
+
     students = cursor.fetchall()
 
     cursor.close()
@@ -77,31 +77,26 @@ FROM Student""")
 
 
 @app.route("/api/students", methods=["POST"])
-
 def add_student():
 
     data = request.get_json()
 
     if not data or not data.get("password"):
-        return {
-            "message": "Password is required"
-        }, 400
+        return {"message": "Password is required"}, 400
 
     if data["cgpa"] < 0 or data["cgpa"] > 10:
-        return {
-            "message": "CGPA must be between 0 and 10"
-        }, 400
+        return {"message": "CGPA must be between 0 and 10"}, 400
 
-    # Hash the password
     hashed_password = generate_password_hash(data["password"])
 
     db = get_db_connection()
     cursor = db.cursor()
 
     sql = """
-    INSERT INTO Student
-    (name, email, qualification, cgpa, skills, preferred_type, password_hash)
-    VALUES (%s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO Student
+        (name, email, qualification, cgpa, skills,
+         preferred_type, password_hash)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
     """
 
     values = (
@@ -110,7 +105,7 @@ def add_student():
         data["qualification"],
         data["cgpa"],
         data["skills"],
-        data["preferred_type"],
+        data.get("preferred_type", ""),
         hashed_password
     )
 
@@ -120,9 +115,9 @@ def add_student():
     cursor.close()
     db.close()
 
-    return {
-        "message": "Student added successfully!"
-    }
+    return {"message": "Student added successfully!"}
+
+
 @app.route("/api/students/<int:student_id>", methods=["GET"])
 def get_student(student_id):
 
@@ -130,10 +125,10 @@ def get_student(student_id):
     cursor = db.cursor()
 
     sql = """
-    SELECT student_id, name, email, qualification,
-           cgpa, skills, preferred_type
-    FROM Student
-    WHERE student_id = %s
+        SELECT student_id, name, email, qualification,
+               cgpa, skills
+        FROM Student
+        WHERE student_id = %s
     """
 
     cursor.execute(sql, (student_id,))
@@ -146,6 +141,7 @@ def get_student(student_id):
         return {"message": "Student not found"}, 404
 
     return {"student": student}
+
 
 @app.route("/api/students/<int:student_id>", methods=["PUT"])
 def update_student(student_id):
@@ -161,7 +157,6 @@ def update_student(student_id):
     db = get_db_connection()
     cursor = db.cursor()
 
-    # Check whether student exists
     cursor.execute(
         "SELECT student_id FROM Student WHERE student_id = %s",
         (student_id,)
@@ -173,14 +168,13 @@ def update_student(student_id):
         return {"message": "Student not found"}, 404
 
     sql = """
-    UPDATE Student
-    SET name = %s,
-        email = %s,
-        qualification = %s,
-        cgpa = %s,
-        skills = %s,
-        preferred_type = %s
-    WHERE student_id = %s
+        UPDATE Student
+        SET name = %s,
+            email = %s,
+            qualification = %s,
+            cgpa = %s,
+            skills = %s
+        WHERE student_id = %s
     """
 
     values = (
@@ -189,7 +183,6 @@ def update_student(student_id):
         data["qualification"],
         data["cgpa"],
         data["skills"],
-        data["preferred_type"],
         student_id
     )
 
@@ -201,7 +194,10 @@ def update_student(student_id):
 
     return {"message": "Profile updated successfully!"}
 
-@app.route('/api/login', methods=['POST'])
+
+# ================= STUDENT LOGIN =================
+
+@app.route("/api/login", methods=["POST"])
 def login_student():
 
     data = request.get_json()
@@ -215,9 +211,9 @@ def login_student():
     cursor = db.cursor()
 
     sql = """
-    SELECT student_id, name, email, password_hash
-    FROM Student
-    WHERE email = %s
+        SELECT student_id, name, email, password_hash
+        FROM Student
+        WHERE email = %s
     """
 
     cursor.execute(sql, (data["email"],))
@@ -260,9 +256,7 @@ def get_opportunities():
     cursor.close()
     db.close()
 
-    return {
-        "opportunities": opportunities
-    }
+    return {"opportunities": opportunities}
 
 
 @app.route("/api/opportunities", methods=["POST"])
@@ -277,10 +271,10 @@ def add_opportunity():
     cursor = db.cursor()
 
     sql = """
-    INSERT INTO Opportunity
-    (company_name, opportunity_title, opportunity_type,
-     required_skills, minimum_cgpa, location)
-    VALUES (%s, %s, %s, %s, %s, %s)
+        INSERT INTO Opportunity
+        (company_name, opportunity_title, opportunity_type,
+         required_skills, minimum_cgpa, location)
+        VALUES (%s, %s, %s, %s, %s, %s)
     """
 
     values = (
@@ -298,14 +292,10 @@ def add_opportunity():
     cursor.close()
     db.close()
 
-    return {
-        "message": "Opportunity added successfully!"
-    }
+    return {"message": "Opportunity added successfully!"}
 
 
 # ================= APPLICATIONS =================
-
-@app.route("/api/applications", methods=["GET"])
 
 @app.route("/api/applications", methods=["GET"])
 def get_applications():
@@ -314,19 +304,19 @@ def get_applications():
     cursor = db.cursor()
 
     sql = """
-    SELECT
-        Application.application_id,
-        Application.student_id,
-        Application.opportunity_id,
-        Application.application_date,
-        Application.status,
-        Opportunity.company_name,
-        Opportunity.opportunity_title,
-        Opportunity.opportunity_type
-    FROM Application
-    JOIN Opportunity
-    ON Application.opportunity_id = Opportunity.opportunity_id
-    ORDER BY Application.application_id DESC
+        SELECT
+            Application.application_id,
+            Application.student_id,
+            Application.opportunity_id,
+            Application.application_date,
+            Application.status,
+            Opportunity.company_name,
+            Opportunity.opportunity_title,
+            Opportunity.opportunity_type
+        FROM Application
+        JOIN Opportunity
+        ON Application.opportunity_id = Opportunity.opportunity_id
+        ORDER BY Application.application_id DESC
     """
 
     cursor.execute(sql)
@@ -335,9 +325,9 @@ def get_applications():
     cursor.close()
     db.close()
 
-    return {
-        "applications": applications
-    }
+    return {"applications": applications}
+
+
 @app.route("/api/applications", methods=["POST"])
 def add_application():
 
@@ -346,7 +336,6 @@ def add_application():
     db = get_db_connection()
     cursor = db.cursor()
 
-    # Check whether student exists
     cursor.execute(
         "SELECT student_id FROM Student WHERE student_id = %s",
         (data["student_id"],)
@@ -357,18 +346,23 @@ def add_application():
         db.close()
         return {"message": "Student not found"}, 404
 
-    # Check whether opportunity exists
     cursor.execute(
-        "SELECT opportunity_id FROM Opportunity WHERE opportunity_id = %s",
+        "SELECT status FROM Opportunity WHERE opportunity_id = %s",
         (data["opportunity_id"],)
     )
 
-    if cursor.fetchone() is None:
+    opportunity = cursor.fetchone()
+
+    if opportunity is None:
         cursor.close()
         db.close()
         return {"message": "Opportunity not found"}, 404
 
-    # Check the student's latest application
+    if opportunity[0] and opportunity[0].strip().lower() == "closed":
+        cursor.close()
+        db.close()
+        return {"message": "This opportunity is closed. Applications are no longer accepted."}, 409
+
     cursor.execute(
         """
         SELECT status FROM Application
@@ -391,11 +385,10 @@ def add_application():
                 "message": "You cannot apply again unless your previous application was rejected or withdrawn."
             }, 409
 
-    # Insert new application
     sql = """
-    INSERT INTO Application
-    (student_id, opportunity_id, application_date, status)
-    VALUES (%s, %s, %s, %s)
+        INSERT INTO Application
+        (student_id, opportunity_id, application_date, status)
+        VALUES (%s, %s, %s, %s)
     """
 
     values = (
@@ -411,10 +404,7 @@ def add_application():
     cursor.close()
     db.close()
 
-    return {
-        "message": "Application added successfully!"
-    }
-
+    return {"message": "Application added successfully!"}
 
 # ================= ALLOCATIONS =================
 
@@ -430,13 +420,10 @@ def get_allocations():
     cursor.close()
     db.close()
 
-    return {
-        "allocations": allocations
-    }
+    return {"allocations": allocations}
 
 
 @app.route("/api/allocations", methods=["POST"])
-
 def add_allocation():
 
     data = request.get_json()
@@ -444,7 +431,6 @@ def add_allocation():
     db = get_db_connection()
     cursor = db.cursor()
 
-    # Check whether student exists
     cursor.execute(
         "SELECT student_id FROM Student WHERE student_id = %s",
         (data["student_id"],)
@@ -455,7 +441,6 @@ def add_allocation():
         db.close()
         return {"message": "Student not found"}, 404
 
-    # Check whether opportunity exists
     cursor.execute(
         "SELECT opportunity_id FROM Opportunity WHERE opportunity_id = %s",
         (data["opportunity_id"],)
@@ -466,7 +451,6 @@ def add_allocation():
         db.close()
         return {"message": "Opportunity not found"}, 404
 
-    # Check whether student is already allocated
     cursor.execute(
         """
         SELECT allocation_id FROM Allocation
@@ -482,11 +466,10 @@ def add_allocation():
             "message": "Student is already allocated to this opportunity."
         }, 409
 
-    # Insert allocation
     sql = """
-    INSERT INTO Allocation
-    (student_id, opportunity_id, allocation_date, status)
-    VALUES (%s, %s, %s, %s)
+        INSERT INTO Allocation
+        (student_id, opportunity_id, allocation_date, status)
+        VALUES (%s, %s, %s, %s)
     """
 
     values = (
@@ -502,22 +485,19 @@ def add_allocation():
     cursor.close()
     db.close()
 
-    return {
-        "message": "Allocation added successfully!"
-    }
+    return {"message": "Allocation added successfully!"}
+
 
 # ================= MATCHING =================
-
 @app.route("/api/match/<int:student_id>", methods=["GET"])
 def match_opportunities(student_id):
 
     db = get_db_connection()
     cursor = db.cursor(dictionary=True)
 
-    # Get student
     cursor.execute(
         """
-        SELECT *
+        SELECT student_id, name, email, qualification, cgpa, skills
         FROM Student
         WHERE student_id = %s
         """,
@@ -529,13 +509,8 @@ def match_opportunities(student_id):
     if not student:
         cursor.close()
         db.close()
+        return {"message": "Student not found"}, 404
 
-        return {
-            "message": "Student not found"
-        }, 404
-
-    # Get opportunities
-    # required_skills is renamed temporarily to skills
     cursor.execute(
         """
         SELECT
@@ -547,6 +522,7 @@ def match_opportunities(student_id):
             minimum_cgpa,
             location
         FROM Opportunity
+        WHERE status = 'Active'
         """
     )
 
@@ -554,29 +530,19 @@ def match_opportunities(student_id):
 
     matched = []
 
-    # Check every opportunity
     for opportunity in opportunities:
 
-        # CGPA matching
         cgpa_match = (
             float(student["cgpa"])
             >= float(opportunity["minimum_cgpa"])
         )
 
-        # Skills matching
         skills_match = (
             opportunity["skills"].lower()
             in student["skills"].lower()
         )
 
-        # Opportunity type matching
-        type_match = (
-            student["preferred_type"].lower()
-            == opportunity["opportunity_type"].lower()
-        )
-
-        # If all conditions match
-        if cgpa_match and skills_match and type_match:
+        if cgpa_match and skills_match:
             matched.append(opportunity)
 
     cursor.close()
@@ -586,14 +552,16 @@ def match_opportunities(student_id):
         "student": student,
         "matched_opportunities": matched
     }
-# Delete an opportunity
+
+
+# ================= DELETE OPPORTUNITY =================
+
 @app.route("/api/opportunities/<int:opportunity_id>", methods=["DELETE"])
 def delete_opportunity(opportunity_id):
 
     db = get_db_connection()
     cursor = db.cursor()
 
-    # Check whether students have applied
     cursor.execute(
         "SELECT application_id FROM Application WHERE opportunity_id = %s",
         (opportunity_id,)
@@ -601,7 +569,6 @@ def delete_opportunity(opportunity_id):
 
     applications = cursor.fetchall()
 
-    # Check whether students have been allocated
     cursor.execute(
         "SELECT allocation_id FROM Allocation WHERE opportunity_id = %s",
         (opportunity_id,)
@@ -617,7 +584,6 @@ def delete_opportunity(opportunity_id):
             "message": "Cannot delete this opportunity because applications or allocations already exist."
         }, 409
 
-    # Delete opportunity if no related records exist
     cursor.execute(
         "DELETE FROM Opportunity WHERE opportunity_id = %s",
         (opportunity_id,)
@@ -636,7 +602,32 @@ def delete_opportunity(opportunity_id):
     return {"message": "Opportunity deleted successfully!"}
 
 
-# Update application status
+# ================= CLOSE OPPORTUNITY =================
+
+@app.route("/api/opportunities/<int:opportunity_id>/close", methods=["PUT"])
+def close_opportunity(opportunity_id):
+
+    db = get_db_connection()
+    cursor = db.cursor()
+
+    cursor.execute(
+        "UPDATE Opportunity SET status = 'Closed' WHERE opportunity_id = %s",
+        (opportunity_id,)
+    )
+
+    if cursor.rowcount == 0:
+        cursor.close()
+        db.close()
+        return {"message": "Opportunity not found"}, 404
+
+    db.commit()
+
+    cursor.close()
+    db.close()
+
+    return {"message": "Opportunity closed successfully!"}
+# ================= UPDATE APPLICATION STATUS =================
+
 @app.route("/api/applications/<int:application_id>", methods=["PUT"])
 def update_application_status(application_id):
 
@@ -683,15 +674,6 @@ def update_application_status(application_id):
     return {"message": "Application status updated successfully!"}
 
 
-
-
-
-
-
-
-
-
-
 # ================= ADMIN LOGIN =================
 
 @app.route("/api/admin/login", methods=["POST"])
@@ -713,7 +695,11 @@ def admin_login():
 
     try:
         cursor.execute(
-            "SELECT admin_id, username, password_hash FROM Admin WHERE username = %s",
+            """
+            SELECT admin_id, username, password_hash
+            FROM Admin
+            WHERE username = %s
+            """,
             (username,)
         )
 
@@ -735,9 +721,8 @@ def admin_login():
         cursor.close()
         db.close()
 
+
 # ================= RUN APPLICATION =================
 
 if __name__ == "__main__":
     app.run(debug=True)
-
-    

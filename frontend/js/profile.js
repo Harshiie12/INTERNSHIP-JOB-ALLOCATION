@@ -28,7 +28,6 @@ async function loadProfile() {
         document.getElementById("qualification").value = student[3];
         document.getElementById("cgpa").value = student[4];
         document.getElementById("skills").value = student[5];
-        document.getElementById("preferred_type").value = student[6];
 
     } catch (error) {
         console.error(error);
@@ -46,8 +45,7 @@ document.getElementById("profileForm").addEventListener("submit", async function
         email: document.getElementById("email").value.trim(),
         qualification: document.getElementById("qualification").value.trim(),
         cgpa: Number(document.getElementById("cgpa").value),
-        skills: document.getElementById("skills").value.trim(),
-        preferred_type: document.getElementById("preferred_type").value
+        skills: document.getElementById("skills").value.trim()
     };
 
     try {
