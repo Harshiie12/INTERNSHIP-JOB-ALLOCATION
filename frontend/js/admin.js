@@ -34,9 +34,11 @@ async function viewStudents() {
                         <th>Student ID</th>
                         <th>Name</th>
                         <th>Email</th>
-                        <th>Qualification</th>
-                        <th>CGPA</th>
-                        <th>Skills</th>
+                       <th>Qualification</th>
+                       <th>10th Percentage</th>
+                       <th>12th Percentage</th>
+                       <th>CGPA</th>
+                       <th>Skills</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -49,8 +51,10 @@ async function viewStudents() {
                     <td>${student[1]}</td>
                     <td>${student[2]}</td>
                     <td>${student[3]}</td>
-                    <td>${student[4]}</td>
-                    <td>${student[5]}</td>
+                   <td>${student[6] ?? "Not Provided"}%</td>
+                   <td>${student[7] ?? "Not Provided"}%</td>
+                   <td>${student[4]}</td>
+                   <td>${student[5]}</td>
                 </tr>
             `;
         });

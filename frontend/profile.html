@@ -27,6 +27,10 @@
 
         <h1>My Profile</h1>
 
+<p class="student-id">
+    Student ID: <span id="studentIdDisplay"></span>
+</p>
+
         <form id="profileForm">
 
             <label for="name">Full Name</label>
@@ -35,8 +39,17 @@
             <label for="email">Email</label>
             <input type="email" id="email" required>
 
-            <label for="qualification">Qualification</label>
-            <input type="text" id="qualification" required>
+            <label for="tenth_percentage">10th Percentage (%)</label>
+<input type="number" id="tenth_percentage"
+       step="0.01" min="0" max="100" required>
+
+<label for="twelfth_percentage">12th Percentage (%)</label>
+<input type="number" id="twelfth_percentage"
+       step="0.01" min="0" max="100" required>
+
+<label for="qualification">College Qualification</label>
+<input type="text" id="qualification"
+       placeholder="e.g. BCA, B.Tech, B.Sc." required>
 
             <label for="cgpa">CGPA</label>
             <input type="number" id="cgpa"

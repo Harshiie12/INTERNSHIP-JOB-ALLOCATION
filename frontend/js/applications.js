@@ -12,16 +12,14 @@ async function loadApplications() {
     }
 
     try {
-
         const response = await fetch("http://127.0.0.1:5000/api/applications");
-
-        if (!response.ok) {
-            throw new Error("Failed to fetch applications");
-        }
 
         const result = await response.json();
 
-        // Filter applications of the logged-in student
+        if (!response.ok) {
+            throw new Error(result.message || "Failed to fetch applications");
+        }
+
         const myApplications = result.applications.filter(
             application => Number(application[1]) === Number(studentId)
         );
@@ -48,11 +46,13 @@ async function loadApplications() {
             const type = document.createElement("p");
             type.textContent = "Type: " + application[7];
 
+            const applicationId = document.createElement("p");
+            applicationId.textContent = "Application ID: " + application[0];
+
             const date = document.createElement("p");
             date.textContent = "Application Date: " +
                 new Date(application[3]).toLocaleDateString();
 
-            // Application status with different colors
             const status = document.createElement("p");
 
             const statusColors = {
@@ -63,15 +63,12 @@ async function loadApplications() {
             };
 
             status.textContent = "Status: " + application[4];
-
             status.style.color = statusColors[application[4]] || "#6b7280";
             status.style.fontWeight = "700";
-            status.style.fontSize = "16px";
 
-            card.append(title, company, type, date, status);
+            card.append(title, company, type, applicationId, date, status);
 
             applicationsContainer.appendChild(card);
-
         });
 
     } catch (error) {
