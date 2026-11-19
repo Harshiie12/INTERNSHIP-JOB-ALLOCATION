@@ -56,7 +56,6 @@ def students():
 
     return str(data)
 
-
 @app.route("/api/students", methods=["GET"])
 def get_students():
     db = get_db_connection()
@@ -64,7 +63,7 @@ def get_students():
 
     cursor.execute("""
         SELECT student_id, name, email, qualification,
-               cgpa, skills
+               cgpa, skills, tenth_percentage, twelfth_percentage
         FROM Student
     """)
 
@@ -74,6 +73,7 @@ def get_students():
     db.close()
 
     return {"students": students}
+
 
 
 @app.route("/api/students", methods=["POST"])
@@ -118,6 +118,7 @@ def add_student():
     return {"message": "Student added successfully!"}
 
 
+
 @app.route("/api/students/<int:student_id>", methods=["GET"])
 def get_student(student_id):
 
@@ -126,7 +127,7 @@ def get_student(student_id):
 
     sql = """
         SELECT student_id, name, email, qualification,
-               cgpa, skills
+               cgpa, skills, tenth_percentage, twelfth_percentage
         FROM Student
         WHERE student_id = %s
     """
@@ -143,6 +144,8 @@ def get_student(student_id):
     return {"student": student}
 
 
+
+
 @app.route("/api/students/<int:student_id>", methods=["PUT"])
 def update_student(student_id):
 
@@ -153,6 +156,15 @@ def update_student(student_id):
 
     if data["cgpa"] < 0 or data["cgpa"] > 10:
         return {"message": "CGPA must be between 0 and 10"}, 400
+
+    tenth = data.get("tenth_percentage")
+    twelfth = data.get("twelfth_percentage")
+
+    if tenth is None or twelfth is None:
+        return {"message": "10th and 12th percentages are required"}, 400
+
+    if not (0 <= tenth <= 100) or not (0 <= twelfth <= 100):
+        return {"message": "Percentages must be between 0 and 100"}, 400
 
     db = get_db_connection()
     cursor = db.cursor()
@@ -173,7 +185,9 @@ def update_student(student_id):
             email = %s,
             qualification = %s,
             cgpa = %s,
-            skills = %s
+            skills = %s,
+            tenth_percentage = %s,
+            twelfth_percentage = %s
         WHERE student_id = %s
     """
 
@@ -183,6 +197,8 @@ def update_student(student_id):
         data["qualification"],
         data["cgpa"],
         data["skills"],
+        tenth,
+        twelfth,
         student_id
     )
 
