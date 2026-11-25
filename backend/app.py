@@ -332,7 +332,9 @@ def get_applications():
         FROM Application
         JOIN Opportunity
         ON Application.opportunity_id = Opportunity.opportunity_id
-        ORDER BY Application.application_id DESC
+        ORDER BY
+        Application.opportunity_id ASC,
+     Application.application_id ASC
     """
 
     cursor.execute(sql)
@@ -642,6 +644,7 @@ def close_opportunity(opportunity_id):
     db.close()
 
     return {"message": "Opportunity closed successfully!"}
+#
 # ================= UPDATE APPLICATION STATUS =================
 
 @app.route("/api/applications/<int:application_id>", methods=["PUT"])
@@ -654,41 +657,101 @@ def update_application_status(application_id):
 
     status = data["status"]
 
-    allowed_statuses = [
-        "Applied",
-        "Shortlisted",
-        "Rejected",
-        "Selected"
-    ]
+    allowed_statuses = ["Shortlisted", "Rejected", "Selected"]
 
     if status not in allowed_statuses:
-        return {"message": "Invalid application status"}, 400
+        return {
+            "message": "Choose Shortlisted, Rejected, or Selected."
+        }, 400
 
     db = get_db_connection()
     cursor = db.cursor()
 
-    cursor.execute(
-        "SELECT application_id FROM Application WHERE application_id = %s",
-        (application_id,)
-    )
+    try:
+        # Get the application details and lock this row
+        cursor.execute("""
+            SELECT student_id, opportunity_id, status
+            FROM Application
+            WHERE application_id = %s
+            FOR UPDATE
+        """, (application_id,))
 
-    if cursor.fetchone() is None:
+        application = cursor.fetchone()
+
+        if application is None:
+            db.rollback()
+            return {"message": "Application not found"}, 404
+
+        student_id = application[0]
+        opportunity_id = application[1]
+        current_status = application[2]
+
+        # Applied and Shortlisted are both still pending
+        if current_status not in ["Applied", "Shortlisted"]:
+            db.rollback()
+            return {
+                "message": "This application is already finalized."
+            }, 409
+
+        # Find the first pending application for this opportunity
+        cursor.execute("""
+            SELECT application_id
+            FROM Application
+            WHERE opportunity_id = %s
+              AND status IN ('Applied', 'Shortlisted')
+            ORDER BY application_id ASC
+            LIMIT 1
+            FOR UPDATE
+        """, (opportunity_id,))
+
+        first_application = cursor.fetchone()
+
+        # Only the first pending application can be updated
+        if first_application is None or first_application[0] != application_id:
+            db.rollback()
+            return {
+                "message": "This application is locked. Process the earlier application first."
+            }, 409
+
+        # Update the application status
+        cursor.execute("""
+            UPDATE Application
+            SET status = %s
+            WHERE application_id = %s
+        """, (status, application_id))
+
+        # Create an allocation if the student is selected
+        if status == "Selected":
+
+            cursor.execute("""
+                SELECT allocation_id
+                FROM Allocation
+                WHERE student_id = %s
+                  AND opportunity_id = %s
+            """, (student_id, opportunity_id))
+
+            existing_allocation = cursor.fetchone()
+
+            if existing_allocation is None:
+                cursor.execute("""
+                    INSERT INTO Allocation
+                    (student_id, opportunity_id, allocation_date, status)
+                    VALUES (%s, %s, CURDATE(), %s)
+                """, (student_id, opportunity_id, "Allocated"))
+
+        db.commit()
+
+        return {
+            "message": "Application status updated successfully!"
+        }, 200
+
+    except Exception as e:
+        db.rollback()
+        return {"message": str(e)}, 500
+
+    finally:
         cursor.close()
         db.close()
-        return {"message": "Application not found"}, 404
-
-    cursor.execute(
-        "UPDATE Application SET status = %s WHERE application_id = %s",
-        (status, application_id)
-    )
-
-    db.commit()
-
-    cursor.close()
-    db.close()
-
-    return {"message": "Application status updated successfully!"}
-
 
 # ================= ADMIN LOGIN =================
 

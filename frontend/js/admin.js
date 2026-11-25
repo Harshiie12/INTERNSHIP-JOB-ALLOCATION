@@ -2,19 +2,14 @@
 const adminContent = document.getElementById("adminContent");
 const adminModal = document.getElementById("adminModal");
 
-// View registered students in popup
+// ================= VIEW REGISTERED STUDENTS =================
 
 async function viewStudents() {
-
     adminModal.style.display = "flex";
     adminContent.innerHTML = "<p>Loading students...</p>";
 
     try {
-
-        const response = await fetch(
-            "http://127.0.0.1:5000/api/students"
-        );
-
+        const response = await fetch("http://127.0.0.1:5000/api/students");
         const result = await response.json();
 
         if (!response.ok) {
@@ -34,11 +29,11 @@ async function viewStudents() {
                         <th>Student ID</th>
                         <th>Name</th>
                         <th>Email</th>
-                       <th>Qualification</th>
-                       <th>10th Percentage</th>
-                       <th>12th Percentage</th>
-                       <th>CGPA</th>
-                       <th>Skills</th>
+                        <th>Qualification</th>
+                        <th>10th Percentage</th>
+                        <th>12th Percentage</th>
+                        <th>CGPA</th>
+                        <th>Skills</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -51,19 +46,15 @@ async function viewStudents() {
                     <td>${student[1]}</td>
                     <td>${student[2]}</td>
                     <td>${student[3]}</td>
-                   <td>${student[6] ?? "Not Provided"}%</td>
-                   <td>${student[7] ?? "Not Provided"}%</td>
-                   <td>${student[4]}</td>
-                   <td>${student[5]}</td>
+                    <td>${student[6] ?? "Not Provided"}${student[6] != null ? "%" : ""}</td>
+                    <td>${student[7] ?? "Not Provided"}${student[7] != null ? "%" : ""}</td>
+                    <td>${student[4]}</td>
+                    <td>${student[5]}</td>
                 </tr>
             `;
         });
 
-        html += `
-                </tbody>
-            </table>
-        `;
-
+        html += `</tbody></table>`;
         adminContent.innerHTML = html;
 
     } catch (error) {
@@ -73,33 +64,30 @@ async function viewStudents() {
 }
 
 
-// Close popup
+// ================= CLOSE ADMIN MODAL =================
+
 function closeAdminModal() {
     adminModal.style.display = "none";
 }
 
-// Close popup when clicking outside
 adminModal.addEventListener("click", function(event) {
-
     if (event.target === adminModal) {
         closeAdminModal();
     }
-
 });
 
-// Close popup using Escape key
 document.addEventListener("keydown", function(event) {
-
     if (event.key === "Escape") {
         closeAdminModal();
     }
-
 });
 
-/// Show Add Opportunity form
-function showOpportunityForm() {
 
-    document.getElementById("adminModalTitle").textContent = "Add New Opportunity";
+// ================= ADD OPPORTUNITY FORM =================
+
+function showOpportunityForm() {
+    document.getElementById("adminModalTitle").textContent =
+        "Add New Opportunity";
 
     adminContent.innerHTML = `
         <form id="opportunityForm">
@@ -127,7 +115,6 @@ function showOpportunityForm() {
             <input type="text" id="location" required>
 
             <button type="submit">Save Opportunity</button>
-
         </form>
     `;
 
@@ -172,69 +159,185 @@ function showOpportunityForm() {
                 console.error(error);
                 alert("Unable to connect to server.");
             }
-
         });
 }
-// View all student applications
+
+
+// ================= VIEW APPLICATION QUEUE =================
 
 async function viewApplications() {
     try {
-        const response = await fetch("http://127.0.0.1:5000/api/applications");
+        const response = await fetch(
+            "http://127.0.0.1:5000/api/applications"
+        );
+
+        if (!response.ok) {
+            throw new Error("Failed to fetch applications");
+        }
+
         const data = await response.json();
 
-        document.getElementById("adminModalTitle").innerText = "All Applications";
+        document.getElementById("adminModalTitle").textContent =
+            "Application Queue";
 
         let html = `
             <table>
-                <tr>
-                    <th>Application ID</th>
-                    <th>Student ID</th>
-                    <th>Opportunity ID</th>
-                    <th>Company</th>
-                    <th>Opportunity</th>
-                    <th>Type</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                </tr>
+                <thead>
+                    <tr>
+                        <th>Queue Position</th>
+                        <th>Application ID</th>
+                        <th>Student ID</th>
+                        <th>Opportunity ID</th>
+                        <th>Company</th>
+                        <th>Opportunity</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
         `;
 
+        // Each opportunity has its own queue
+        const queuePositions = {};
+        const queueHasPending = {};
+
         data.applications.forEach(app => {
+            const opportunityId = app[2];
+            const applicationStatus = app[4];
+
+            if (queuePositions[opportunityId] === undefined) {
+                queuePositions[opportunityId] = 1;
+            }
+
+            if (queueHasPending[opportunityId] === undefined) {
+                queueHasPending[opportunityId] = false;
+            }
+
+            let position = "Processed";
+            let canUpdate = false;
+
+            // Applied and Shortlisted both remain pending
+            if (
+                applicationStatus === "Applied" ||
+                applicationStatus === "Shortlisted"
+            ) {
+                position = queuePositions[opportunityId];
+                queuePositions[opportunityId]++;
+
+                // Only the first pending application can be updated
+                if (!queueHasPending[opportunityId]) {
+                    canUpdate = true;
+                    queueHasPending[opportunityId] = true;
+                }
+            }
+
             html += `
                 <tr>
+                    <td>${position}</td>
                     <td>${app[0]}</td>
                     <td>${app[1]}</td>
                     <td>${app[2]}</td>
                     <td>${app[5]}</td>
                     <td>${app[6]}</td>
                     <td>${app[7]}</td>
-                    <td>${app[4]}</td>
+                    <td>${applicationStatus}</td>
                     <td>
-                        <select id="status-${app[0]}">
-                            <option value="Applied" ${app[4] === "Applied" ? "selected" : ""}>Applied</option>
-                            <option value="Shortlisted" ${app[4] === "Shortlisted" ? "selected" : ""}>Shortlisted</option>
-                            <option value="Rejected" ${app[4] === "Rejected" ? "selected" : ""}>Rejected</option>
-                            <option value="Selected" ${app[4] === "Selected" ? "selected" : ""}>Selected</option>
-                        </select>
-                        <button onclick="updateApplicationStatus(${app[0]})">Update</button>
+                        ${
+                            (
+                                applicationStatus === "Applied" ||
+                                applicationStatus === "Shortlisted"
+                            )
+                            ? `
+                                <select id="status-${app[0]}"
+                                    ${!canUpdate ? "disabled" : ""}>
+
+                                    <option value="Shortlisted"
+                                        ${applicationStatus === "Shortlisted" ? "selected" : ""}>
+                                        Shortlisted
+                                    </option>
+
+                                    <option value="Rejected">Rejected</option>
+                                    <option value="Selected">Selected</option>
+                                </select>
+
+                                <button
+                                    onclick="updateApplicationStatus(${app[0]})"
+                                    ${!canUpdate ? "disabled" : ""}>
+                                    Update
+                                </button>
+
+                                ${
+                                    !canUpdate
+                                    ? "<small>Waiting for previous application</small>"
+                                    : ""
+                                }
+                            `
+                            : applicationStatus
+                        }
                     </td>
                 </tr>
             `;
         });
 
-        html += `</table>`;
+        html += `</tbody></table>`;
 
         adminContent.innerHTML = html;
         adminModal.style.display = "flex";
 
     } catch (error) {
-        console.error(error);
+        console.error("Application Queue Error:", error);
         alert("Unable to load applications.");
     }
 }
 
-// View all student allocations
-async function viewAllocations() {
 
+// ================= UPDATE APPLICATION STATUS =================
+
+async function updateApplicationStatus(applicationId) {
+    const statusElement = document.getElementById(`status-${applicationId}`);
+
+    if (!statusElement) {
+        alert("Status selection not found.");
+        return;
+    }
+
+    const status = statusElement.value;
+
+    try {
+        const response = await fetch(
+            `http://127.0.0.1:5000/api/applications/${applicationId}`,
+            {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ status: status })
+            }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            alert(result.message || "Unable to update application.");
+            return;
+        }
+
+        alert(result.message || "Application status updated successfully!");
+
+        // Reload the queue after updating
+        await viewApplications();
+
+    } catch (error) {
+        console.error(error);
+        alert("Unable to update application status.");
+    }
+}
+
+
+// ================= VIEW STUDENT ALLOCATIONS =================
+
+async function viewAllocations() {
     document.getElementById("adminModalTitle").textContent =
         "Student Allocations";
 
@@ -242,7 +345,6 @@ async function viewAllocations() {
     adminContent.innerHTML = "<p>Loading allocations...</p>";
 
     try {
-
         const response = await fetch(
             "http://127.0.0.1:5000/api/allocations"
         );
@@ -274,7 +376,6 @@ async function viewAllocations() {
         `;
 
         result.allocations.forEach(allocation => {
-
             html += `
                 <tr>
                     <td>${allocation[0]}</td>
@@ -284,26 +385,21 @@ async function viewAllocations() {
                     <td>${allocation[4]}</td>
                 </tr>
             `;
-
         });
 
-        html += `
-                </tbody>
-            </table>
-        `;
-
+        html += `</tbody></table>`;
         adminContent.innerHTML = html;
 
     } catch (error) {
-
         console.error(error);
         adminContent.innerHTML = "<p>Unable to connect to server.</p>";
-
     }
 }
-// View all opportunities
-async function viewOpportunities() {
 
+
+// ================= VIEW ALL OPPORTUNITIES =================
+
+async function viewOpportunities() {
     document.getElementById("adminModalTitle").textContent =
         "Manage Opportunities";
 
@@ -311,7 +407,6 @@ async function viewOpportunities() {
     adminContent.innerHTML = "<p>Loading opportunities...</p>";
 
     try {
-
         const response = await fetch(
             "http://127.0.0.1:5000/api/opportunities"
         );
@@ -347,7 +442,6 @@ async function viewOpportunities() {
         `;
 
         result.opportunities.forEach(opportunity => {
-
             html += `
                 <tr>
                     <td>${opportunity[0]}</td>
@@ -356,51 +450,45 @@ async function viewOpportunities() {
                     <td>${opportunity[3]}</td>
                     <td>${opportunity[4]}</td>
                     <td>${opportunity[5]}</td>
-                   <td>${opportunity[6]}</td>
-<td>${opportunity[7]}</td>
-<td>
-    ${
-        opportunity[7] === "Active"
-        ? `<button onclick="closeOpportunity(${opportunity[0]})">
-               Close Opportunity
-           </button>`
-        : "Closed"
-    }
+                    <td>${opportunity[6]}</td>
+                    <td>${opportunity[7]}</td>
+                    <td>
+                        ${
+                            opportunity[7] === "Active"
+                            ? `<button onclick="closeOpportunity(${opportunity[0]})">
+                                   Close Opportunity
+                               </button>`
+                            : "Closed"
+                        }
 
-    <button onclick="deleteOpportunity(${opportunity[0]})">
-        Delete
-    </button>
-</td>
+                        <button onclick="deleteOpportunity(${opportunity[0]})">
+                            Delete
+                        </button>
+                    </td>
                 </tr>
             `;
-
         });
 
-        html += "</tbody></table>";
-
+        html += `</tbody></table>`;
         adminContent.innerHTML = html;
 
     } catch (error) {
-
         console.error(error);
         adminContent.innerHTML = "<p>Unable to connect to server.</p>";
-
     }
 }
 
-// Delete an opportunity
-async function deleteOpportunity(opportunityId) {
 
+// ================= DELETE OPPORTUNITY =================
+
+async function deleteOpportunity(opportunityId) {
     const confirmDelete = confirm(
         "Are you sure you want to delete this opportunity?"
     );
 
-    if (!confirmDelete) {
-        return;
-    }
+    if (!confirmDelete) return;
 
     try {
-
         const response = await fetch(
             `http://127.0.0.1:5000/api/opportunities/${opportunityId}`,
             {
@@ -411,71 +499,29 @@ async function deleteOpportunity(opportunityId) {
         const result = await response.json();
 
         if (response.ok) {
-
             alert("Opportunity deleted successfully!");
-
-            // Refresh the opportunities table
-            viewOpportunities();
-
+            await viewOpportunities();
         } else {
-
             alert(result.message || "Unable to delete opportunity.");
-
         }
 
     } catch (error) {
-
         console.error(error);
         alert("Unable to connect to server.");
-
     }
 }
 
 
-async function updateApplicationStatus(applicationId) {
-    const status = document.getElementById(`status-${applicationId}`).value;
+// ================= CLOSE OPPORTUNITY =================
 
-    try {
-        const response = await fetch(
-            `http://127.0.0.1:5000/api/applications/${applicationId}`,
-            {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ status: status })
-            }
-        );
-
-        const result = await response.json();
-
-        if (response.ok) {
-            alert("Application status updated successfully!");
-            viewApplications();
-        } else {
-            alert(result.message || "Unable to update status.");
-        }
-
-    } catch (error) {
-        console.error(error);
-        alert("Unable to connect to the server.");
-    }
-}
-
-
-// Close an opportunity
 async function closeOpportunity(opportunityId) {
-
     const confirmClose = confirm(
         "Are you sure you want to close this opportunity?"
     );
 
-    if (!confirmClose) {
-        return;
-    }
+    if (!confirmClose) return;
 
     try {
-
         const response = await fetch(
             `http://127.0.0.1:5000/api/opportunities/${opportunityId}/close`,
             {
@@ -486,21 +532,14 @@ async function closeOpportunity(opportunityId) {
         const result = await response.json();
 
         if (response.ok) {
-
             alert("Opportunity closed successfully!");
-
-            viewOpportunities();
-
+            await viewOpportunities();
         } else {
-
             alert(result.message || "Unable to close opportunity.");
-
         }
 
     } catch (error) {
-
         console.error(error);
         alert("Unable to connect to server.");
-
     }
 }
